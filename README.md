@@ -96,3 +96,7 @@ The intended near-term flow is:
 4. Generate a structured diagnostic DSL with Qwen on vLLM.
 5. Validate the DSL before rendering final C code.
 
+## Development Blueprint
+
+See [docs/development_blueprint.md](docs/development_blueprint.md) for the
+developable directory structure, module responsibilities, and API list.
