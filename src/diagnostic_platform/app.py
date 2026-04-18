@@ -7,22 +7,26 @@ from fastapi import FastAPI, HTTPException
 from diagnostic_platform.config import settings
 from diagnostic_platform.graph.diagnostic_graph import build_diagnostic_graph, search_graph_paths
 from diagnostic_platform.ingestion.flow_excel import parse_flow_xlsx
+from diagnostic_platform.ingestion.mineru_client import load_mineru_output, parse_document_with_mineru
 from diagnostic_platform.normalizer.evidence import evidence_from_mineru
 from diagnostic_platform.normalizer.mineru import normalize_request
 from diagnostic_platform.renderers.c_template import render_c_function
 from diagnostic_platform.renderers.xml_workflow import render_xml_request
 from diagnostic_platform.schemas import (
+    BuildDiagnosticGraphRequest,
     BuildStepEvidenceRequest,
     BuildStepEvidenceResponse,
     DiagnosticPlan,
     DiagnosticGraph,
     EvidenceUnit,
     FlowStepPlan,
-    BuildDiagnosticGraphRequest,
     GraphPathSearchRequest,
     GraphPathSearchResponse,
+    LoadMinerUOutputRequest,
     NormalizeMinerURequest,
     ParseFlowXlsxRequest,
+    ParseDocumentRequest,
+    ParseDocumentResult,
     RenderedCode,
     RenderedXml,
     ValidationResult,
@@ -42,6 +46,26 @@ def healthz() -> dict[str, str]:
     """Liveness endpoint."""
 
     return {"status": "ok"}
+
+
+@app.post(f"{settings.api_prefix}/documents/parse")
+def parse_document(request: ParseDocumentRequest) -> ParseDocumentResult:
+    """Invoke MinerU to parse a PDF/image and optionally load structured output."""
+
+    try:
+        return parse_document_with_mineru(request)
+    except (FileNotFoundError, TimeoutError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post(f"{settings.api_prefix}/documents/load-mineru")
+def load_mineru_document_output(request: LoadMinerUOutputRequest) -> NormalizeMinerURequest:
+    """Load existing MinerU output into normalized content blocks."""
+
+    try:
+        return load_mineru_output(request)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post(f"{settings.api_prefix}/knowledge/normalize")

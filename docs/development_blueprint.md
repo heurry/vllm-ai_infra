@@ -189,6 +189,8 @@ vllm-ai_infra/
 | Method | Path | 职责 |
 | --- | --- | --- |
 | `GET` | `/healthz` | 服务存活检查 |
+| `POST` | `/api/v1/documents/parse` | 调用 MinerU 解析 PDF/图片并发现输出文件 |
+| `POST` | `/api/v1/documents/load-mineru` | 将已有 MinerU 输出目录加载为 `NormalizeMinerURequest` |
 | `POST` | `/api/v1/knowledge/normalize` | 将 MinerU `content_list` 风格数据转成知识单元 |
 | `POST` | `/api/v1/validation/diagnostic` | 校验诊断 DSL |
 | `POST` | `/api/v1/render/c` | 将诊断 DSL 渲染为 C 模板 |

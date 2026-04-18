@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 
 from diagnostic_platform.schemas import (
@@ -70,12 +71,19 @@ def _map_block_type(block: MinerUContentBlock) -> str:
 
 def _block_content(block: MinerUContentBlock) -> str:
     if block.type in {"text", "equation"}:
-        return (block.text or "").strip()
+        return _clean_text(block.text or "")
     if block.type == "table":
-        return " ".join(block.table_caption + block.table_footnote).strip()
+        return _clean_text(" ".join([*block.table_caption, block.table_body or "", *block.table_footnote]))
     if block.type == "image":
-        return " ".join(block.image_caption + block.image_footnote).strip()
+        return _clean_text(" ".join(block.image_caption + block.image_footnote))
     return ""
+
+
+def _clean_text(value: str) -> str:
+    value = html.unescape(value)
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
 
 
 def _extract_service_ids(text: str) -> list[str]:
@@ -117,4 +125,3 @@ def _extract_security_levels(text: str) -> list[str]:
         if value not in levels:
             levels.append(value)
     return levels
-

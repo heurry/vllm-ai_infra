@@ -58,6 +58,7 @@ class MinerUContentBlock(BaseModel):
     text_level: int | None = None
     table_caption: list[str] = Field(default_factory=list)
     table_footnote: list[str] = Field(default_factory=list)
+    table_body: str | None = None
     image_caption: list[str] = Field(default_factory=list)
     image_footnote: list[str] = Field(default_factory=list)
     img_path: str | None = None
@@ -139,6 +140,58 @@ class RenderedCode(BaseModel):
 
     language: str = "c"
     code: str
+
+
+class ParseDocumentRequest(BaseModel):
+    """Request for invoking MinerU on a PDF or image path."""
+
+    source_path: str
+    output_dir: str
+    metadata: DocumentMetadata
+    mineru_executable: str = "mineru"
+    backend: str = "pipeline"
+    method: str = "auto"
+    lang: str = "ch"
+    server_url: str | None = None
+    start_page_id: int = Field(default=0, ge=0)
+    end_page_id: int | None = Field(default=None, ge=0)
+    formula_enable: bool = True
+    table_enable: bool = True
+    device_mode: str | None = None
+    model_source: str | None = None
+    timeout_seconds: int = Field(default=3600, ge=1)
+    load_output: bool = True
+
+
+class MinerUOutputFiles(BaseModel):
+    """Files discovered in a MinerU output directory."""
+
+    markdown_files: list[str] = Field(default_factory=list)
+    content_list_files: list[str] = Field(default_factory=list)
+    middle_json_files: list[str] = Field(default_factory=list)
+    image_dirs: list[str] = Field(default_factory=list)
+
+
+class ParseDocumentResult(BaseModel):
+    """Result of a synchronous MinerU parse command."""
+
+    source_path: str
+    output_dir: str
+    command: list[str]
+    return_code: int
+    stdout: str = ""
+    stderr: str = ""
+    files: MinerUOutputFiles
+    normalized: NormalizeMinerURequest | None = None
+
+
+class LoadMinerUOutputRequest(BaseModel):
+    """Request for loading existing MinerU output into normalized blocks."""
+
+    output_dir: str
+    metadata: DocumentMetadata
+    content_list_paths: list[str] = Field(default_factory=list)
+    include_markdown_fallback: bool = True
 
 
 class ParseFlowXlsxRequest(BaseModel):
