@@ -21,6 +21,7 @@ KnowledgeUnitType = Literal[
 Severity = Literal["error", "warning"]
 XmlScriptType = Literal["START", "NORMAL", "END"]
 XmlRenderMode = Literal["script_node", "serial_node"]
+EvidenceType = Literal["text", "table", "image", "flowchart", "equation", "template", "rule"]
 
 
 class DocumentMetadata(BaseModel):
@@ -75,6 +76,19 @@ class KnowledgeUnit(BaseModel):
     page_idx: int
     bbox: list[int] = Field(default_factory=list)
     source_path: str | None = None
+
+
+class EvidenceUnit(BaseModel):
+    """Traceable evidence extracted from documents, templates, or rules."""
+
+    evidence_id: str
+    evidence_type: EvidenceType
+    content: str
+    doc_id: str
+    source_path: str | None = None
+    page_idx: int
+    bbox: list[int] = Field(default_factory=list)
+    metadata: dict[str, str | int | float | bool | list[str]] = Field(default_factory=dict)
 
 
 class DiagnosticStep(BaseModel):
@@ -150,6 +164,50 @@ class FlowStepPlan(BaseModel):
 
     source_path: str
     steps: list[FlowStep] = Field(default_factory=list)
+
+
+class EvidenceMatch(BaseModel):
+    """One evidence retrieval result for a flow node."""
+
+    evidence: EvidenceUnit
+    score: float
+    matched_terms: list[str] = Field(default_factory=list)
+
+
+class NodeEvidenceBundle(BaseModel):
+    """Evidence bundle for one flow node."""
+
+    step_key: str
+    node_name: str
+    template_name: str
+    matches: list[EvidenceMatch] = Field(default_factory=list)
+    graph_paths: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class StepEvidenceBundle(BaseModel):
+    """Evidence bundle for one ordered flow step."""
+
+    step_key: str
+    display_name: str
+    order: int
+    column: int
+    node_bundles: list[NodeEvidenceBundle] = Field(default_factory=list)
+
+
+class BuildStepEvidenceRequest(BaseModel):
+    """Request for linking flow steps with evidence units."""
+
+    flow_plan: FlowStepPlan
+    evidence_units: list[EvidenceUnit]
+    top_k_per_node: int = Field(default=5, ge=1, le=50)
+
+
+class BuildStepEvidenceResponse(BaseModel):
+    """Response for linked step evidence bundles."""
+
+    source_flow_path: str
+    bundles: list[StepEvidenceBundle] = Field(default_factory=list)
 
 
 class XmlArg(BaseModel):

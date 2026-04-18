@@ -6,11 +6,15 @@ from fastapi import FastAPI, HTTPException
 
 from diagnostic_platform.config import settings
 from diagnostic_platform.ingestion.flow_excel import parse_flow_xlsx
+from diagnostic_platform.normalizer.evidence import evidence_from_mineru
 from diagnostic_platform.normalizer.mineru import normalize_request
 from diagnostic_platform.renderers.c_template import render_c_function
 from diagnostic_platform.renderers.xml_workflow import render_xml_request
 from diagnostic_platform.schemas import (
+    BuildStepEvidenceRequest,
+    BuildStepEvidenceResponse,
     DiagnosticPlan,
+    EvidenceUnit,
     FlowStepPlan,
     NormalizeMinerURequest,
     ParseFlowXlsxRequest,
@@ -21,6 +25,7 @@ from diagnostic_platform.schemas import (
     XmlValidationRequest,
     XmlValidationResult,
 )
+from diagnostic_platform.tracing.evidence_bundle import build_step_evidence_bundles
 from diagnostic_platform.validation.rules import validate_plan
 from diagnostic_platform.validation.xml_validator import validate_xml
 
@@ -39,6 +44,13 @@ def normalize_mineru_payload(request: NormalizeMinerURequest):
     """Normalize MinerU output into unified knowledge units."""
 
     return normalize_request(request)
+
+
+@app.post(f"{settings.api_prefix}/xml/evidence/from-mineru")
+def build_evidence_from_mineru(request: NormalizeMinerURequest) -> list[EvidenceUnit]:
+    """Convert MinerU output into traceable evidence units."""
+
+    return evidence_from_mineru(request)
 
 
 @app.post(f"{settings.api_prefix}/validation/diagnostic")
@@ -83,3 +95,10 @@ def validate_xml_payload(request: XmlValidationRequest) -> XmlValidationResult:
     """Validate generated XML fragments."""
 
     return validate_xml(request)
+
+
+@app.post(f"{settings.api_prefix}/xml/evidence/build")
+def build_xml_step_evidence(request: BuildStepEvidenceRequest) -> BuildStepEvidenceResponse:
+    """Build evidence bundles for parsed XML flow steps."""
+
+    return build_step_evidence_bundles(request)
