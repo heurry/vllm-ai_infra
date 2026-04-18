@@ -15,8 +15,12 @@ KnowledgeUnitType = Literal[
     "equation_chunk",
     "code_template",
     "flow_step",
+    "xml_template",
+    "rule_chunk",
 ]
 Severity = Literal["error", "warning"]
+XmlScriptType = Literal["START", "NORMAL", "END"]
+XmlRenderMode = Literal["script_node", "serial_node"]
 
 
 class DocumentMetadata(BaseModel):
@@ -112,3 +116,99 @@ class RenderedCode(BaseModel):
     language: str = "c"
     code: str
 
+
+class ParseFlowXlsxRequest(BaseModel):
+    """Request for parsing a flow.xlsx file."""
+
+    source_path: str
+    include_non_flow: bool = False
+
+
+class FlowNode(BaseModel):
+    """One business node discovered from a flow.xlsx cell."""
+
+    raw: str
+    name: str
+    template_name: str = ""
+    sheet: str
+    row: int
+    column: int
+
+
+class FlowStep(BaseModel):
+    """One ordered flow step. Nodes in the same column are parallel."""
+
+    step_key: str
+    display_name: str
+    order: int
+    column: int
+    parallel_nodes: list[FlowNode] = Field(default_factory=list)
+
+
+class FlowStepPlan(BaseModel):
+    """Structured flow-step plan parsed from flow.xlsx."""
+
+    source_path: str
+    steps: list[FlowStep] = Field(default_factory=list)
+
+
+class XmlArg(BaseModel):
+    """Single XML argument with optional evidence trace."""
+
+    name: str
+    value: str | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class XmlScriptNodePlan(BaseModel):
+    """Intermediate DSL for rendering a ScriptNode."""
+
+    node_name: str
+    class_name: str
+    dead_ms: int = Field(default=0, ge=0)
+    retry_times: int = Field(default=0, ge=0)
+    script_type: XmlScriptType = "NORMAL"
+    interupt_start: bool = False
+    expression: str | None = None
+    args: list[XmlArg] = Field(default_factory=list)
+
+
+class XmlSerialNodePlan(BaseModel):
+    """Intermediate DSL for rendering a SerialNode wrapper."""
+
+    name: str = "MAC_ALL"
+    dead_ms: int = Field(default=0, ge=0)
+    expression: str | None = None
+    scripts: list[XmlScriptNodePlan] = Field(default_factory=list)
+
+
+class XmlRenderRequest(BaseModel):
+    """Render request for XML intermediate DSL."""
+
+    mode: XmlRenderMode = "script_node"
+    script: XmlScriptNodePlan | None = None
+    serial: XmlSerialNodePlan | None = None
+
+
+class RenderedXml(BaseModel):
+    """Rendered XML payload."""
+
+    root_tag: str
+    xml: str
+
+
+class XmlValidationRequest(BaseModel):
+    """Request for XML structure validation."""
+
+    xml: str
+    required_arg_names: list[str] = Field(default_factory=list)
+    require_script_types: list[XmlScriptType] = Field(default_factory=list)
+    min_script_nodes: int = Field(default=0, ge=0)
+
+
+class XmlValidationResult(BaseModel):
+    """XML validation result."""
+
+    valid: bool
+    issues: list[ValidationIssue] = Field(default_factory=list)
+    stats: dict[str, int | str] = Field(default_factory=dict)
