@@ -195,6 +195,8 @@ vllm-ai_infra/
 | `POST` | `/api/v1/xml/flow/parse` | 解析 `flow.xlsx` 为 `FlowStepPlan` |
 | `POST` | `/api/v1/xml/evidence/from-mineru` | 将 MinerU 输出转成可追溯 `EvidenceUnit` |
 | `POST` | `/api/v1/xml/evidence/build` | 将 `FlowStepPlan` 与 `EvidenceUnit` 关联成 `StepEvidenceBundle` |
+| `POST` | `/api/v1/xml/graph/build` | 从步骤计划和证据包构建轻量诊断图谱 |
+| `POST` | `/api/v1/xml/graph/search` | 查询诊断图谱中的实体关系路径 |
 | `POST` | `/api/v1/xml/task/render` | 将 XML 中间 DSL 渲染为 `ScriptNode` / `SerialNode` XML |
 | `POST` | `/api/v1/xml/validate` | 校验 XML 结构、占位符、必填参数和脚本节点 |
 

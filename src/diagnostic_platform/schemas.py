@@ -22,6 +22,16 @@ Severity = Literal["error", "warning"]
 XmlScriptType = Literal["START", "NORMAL", "END"]
 XmlRenderMode = Literal["script_node", "serial_node"]
 EvidenceType = Literal["text", "table", "image", "flowchart", "equation", "template", "rule"]
+GraphEntityType = Literal[
+    "FlowNode",
+    "XmlTemplate",
+    "Evidence",
+    "ECU",
+    "DID",
+    "Service",
+    "Session",
+    "SecurityLevel",
+]
 
 
 class DocumentMetadata(BaseModel):
@@ -208,6 +218,65 @@ class BuildStepEvidenceResponse(BaseModel):
 
     source_flow_path: str
     bundles: list[StepEvidenceBundle] = Field(default_factory=list)
+
+
+class GraphEntity(BaseModel):
+    """Entity in the lightweight diagnostic graph."""
+
+    entity_id: str
+    entity_type: GraphEntityType
+    name: str
+    aliases: list[str] = Field(default_factory=list)
+    metadata: dict[str, str | int | float | bool | list[str]] = Field(default_factory=dict)
+
+
+class GraphRelation(BaseModel):
+    """Directed relation in the lightweight diagnostic graph."""
+
+    source_id: str
+    relation_type: str
+    target_id: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    metadata: dict[str, str | int | float | bool | list[str]] = Field(default_factory=dict)
+
+
+class DiagnosticGraph(BaseModel):
+    """Serializable diagnostic graph."""
+
+    entities: list[GraphEntity] = Field(default_factory=list)
+    relations: list[GraphRelation] = Field(default_factory=list)
+
+
+class BuildDiagnosticGraphRequest(BaseModel):
+    """Request for building a lightweight diagnostic graph."""
+
+    flow_plan: FlowStepPlan
+    evidence_response: BuildStepEvidenceResponse | None = None
+    evidence_units: list[EvidenceUnit] = Field(default_factory=list)
+
+
+class GraphPathSearchRequest(BaseModel):
+    """Request for graph path search."""
+
+    graph: DiagnosticGraph
+    source_id: str
+    target_id: str | None = None
+    relation_types: list[str] = Field(default_factory=list)
+    max_depth: int = Field(default=3, ge=1, le=8)
+    max_paths: int = Field(default=10, ge=1, le=100)
+
+
+class GraphPath(BaseModel):
+    """One graph path."""
+
+    entity_ids: list[str] = Field(default_factory=list)
+    relation_types: list[str] = Field(default_factory=list)
+
+
+class GraphPathSearchResponse(BaseModel):
+    """Graph path search response."""
+
+    paths: list[GraphPath] = Field(default_factory=list)
 
 
 class XmlArg(BaseModel):

@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 
 from diagnostic_platform.config import settings
+from diagnostic_platform.graph.diagnostic_graph import build_diagnostic_graph, search_graph_paths
 from diagnostic_platform.ingestion.flow_excel import parse_flow_xlsx
 from diagnostic_platform.normalizer.evidence import evidence_from_mineru
 from diagnostic_platform.normalizer.mineru import normalize_request
@@ -14,8 +15,12 @@ from diagnostic_platform.schemas import (
     BuildStepEvidenceRequest,
     BuildStepEvidenceResponse,
     DiagnosticPlan,
+    DiagnosticGraph,
     EvidenceUnit,
     FlowStepPlan,
+    BuildDiagnosticGraphRequest,
+    GraphPathSearchRequest,
+    GraphPathSearchResponse,
     NormalizeMinerURequest,
     ParseFlowXlsxRequest,
     RenderedCode,
@@ -102,3 +107,17 @@ def build_xml_step_evidence(request: BuildStepEvidenceRequest) -> BuildStepEvide
     """Build evidence bundles for parsed XML flow steps."""
 
     return build_step_evidence_bundles(request)
+
+
+@app.post(f"{settings.api_prefix}/xml/graph/build")
+def build_xml_graph(request: BuildDiagnosticGraphRequest) -> DiagnosticGraph:
+    """Build a lightweight diagnostic graph from flow steps and evidence."""
+
+    return build_diagnostic_graph(request)
+
+
+@app.post(f"{settings.api_prefix}/xml/graph/search")
+def search_xml_graph(request: GraphPathSearchRequest) -> GraphPathSearchResponse:
+    """Search paths in the lightweight diagnostic graph."""
+
+    return search_graph_paths(request)
