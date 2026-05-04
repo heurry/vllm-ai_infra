@@ -1,0 +1,63 @@
+{
+  "workload": "treg_20260402_system",
+  "iterations": 3,
+  "warmup_iterations": 1,
+  "scenarios": [
+    {
+      "name": "pipeline_no_llm",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/run_workload_pipeline.py",
+        "--workload",
+        "configs/workloads/treg_20260402.json"
+      ],
+      "timeout_seconds": 180,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "duration_p95_seconds_max": 10.0
+      }
+    },
+    {
+      "name": "regression_only",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/run_workload_regression.py",
+        "--workload",
+        "configs/workloads/treg_20260402.json"
+      ],
+      "timeout_seconds": 120,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "duration_p95_seconds_max": 5.0
+      }
+    },
+    {
+      "name": "vllm_chat_stream",
+      "enabled": false,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--max-tokens",
+        "128",
+        "--prompt",
+        "请用 JSON 输出 {\"status\":\"ok\",\"task\":\"xml_audit\"}，不要输出额外解释。"
+      ],
+      "timeout_seconds": 180,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_ttft_seconds_p95_max": 10.0,
+        "stdout_tpot_seconds_p95_max": 1.0,
+        "stdout_tokens_per_second_p50_min": 1.0
+      }
+    }
+  ]
+}

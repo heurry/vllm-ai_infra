@@ -1,0 +1,152 @@
+{
+  "workload": "treg_20260402_semantic_hybrid",
+  "description": "TREG 20260402 semantic chunking + Milvus hybrid retrieval deterministic workload.",
+  "paths": {
+    "mineru_output_dir": "data/processed/mineru/treg_20260402_api/extracted",
+    "flow_path": "pdf-loop/20260402_new_v2/0402/0402/flow.xlsx",
+    "index_dir": "data/index/treg_20260402_semantic_hybrid",
+    "base_workflow": "pdf-loop/20260402_new_v2/0402/TREG/P177__FHC（主流程）.xml",
+    "template_registry": "data/processed/xml_template_registry/treg_20260402.json",
+    "template_contracts": "data/processed/xml_template_registry/treg_20260402_contracts.json",
+    "xml_plan": "data/processed/xml_plan/treg_20260402_semantic_hybrid/xml_plan.json",
+    "serial_xml": "data/processed/xml_plan/treg_20260402_semantic_hybrid/serial_node.xml",
+    "operation_xml_dir": "data/processed/xml_plan/treg_20260402_semantic_hybrid/operations",
+    "flow_evidence_trace": "data/processed/xml_plan/treg_20260402_semantic_hybrid/flow_evidence_trace.json",
+    "diagnostic_graph": "data/processed/xml_plan/treg_20260402_semantic_hybrid/diagnostic_graph.json",
+    "llm_xml_plan": "data/processed/llm_xml/treg_20260402_semantic_hybrid/llm_xml_plan.json",
+    "llm_serial_xml": "data/processed/llm_xml/treg_20260402_semantic_hybrid/serial_node.xml",
+    "llm_operation_xml_dir": "data/processed/llm_xml/treg_20260402_semantic_hybrid/operations",
+    "llm_generation_trace": "data/processed/llm_xml/treg_20260402_semantic_hybrid/llm_generation_trace.json",
+    "llm_raw_source_dir": "data/processed/llm_xml/treg_20260402_semantic_hybrid/raw_sources",
+    "fused_workflow": "data/processed/workflow/treg_20260402_semantic_hybrid/fused_workflow.xml",
+    "arg_audit_report": "data/processed/workflow/treg_20260402_semantic_hybrid/arg_audit_report.json",
+    "audit_resolution_report": "data/processed/workflow/treg_20260402_semantic_hybrid/audit_resolution_report.json",
+    "llm_resolution_report": "data/processed/workflow/treg_20260402_semantic_hybrid/llm_resolution_report.json",
+    "regression_report": "data/reports/regression/treg_20260402_semantic_hybrid_regression_report.json",
+    "pipeline_report": "data/reports/pipeline/treg_20260402_semantic_hybrid_pipeline_report.json"
+  },
+  "local_index": {
+    "enabled": true,
+    "mineru_output_dir": "data/processed/mineru/treg_20260402_api/extracted",
+    "collection_name": "treg_20260402_semantic_hybrid",
+    "chunking_mode": "semantic",
+    "include_graph": true,
+    "timeout_seconds": 1800
+  },
+  "generation": {
+    "mode": "deterministic",
+    "serial_name": "MAC_ALL",
+    "top_k_per_node": 5,
+    "graph_max_paths_per_node": 12,
+    "graph_max_depth": 2,
+    "timeout_seconds": 300,
+    "use_llm_xml_for_fusion": false
+  },
+  "vector_index": {
+    "enabled": true,
+    "vector_config": "configs/retrieval/milvus_vector.json",
+    "collection_name": "diagnostic_knowledge_treg_20260402_semantic_hybrid",
+    "milvus_uri": "http://127.0.0.1:19530",
+    "embedding_model": "/home/xdu/LLM/models/Qwen3-Embedding-0.6B",
+    "metric_type": "COSINE",
+    "batch_size": 16,
+    "drop_existing": true,
+    "timeout_seconds": 2400
+  },
+  "hybrid_retrieval": {
+    "enabled": true,
+    "vector_config": "configs/retrieval/milvus_vector.json",
+    "vector_collection": "diagnostic_knowledge_treg_20260402_semantic_hybrid",
+    "milvus_uri": "http://127.0.0.1:19530",
+    "embedding_model": "/home/xdu/LLM/models/Qwen3-Embedding-0.6B",
+    "dense_top_k": 8,
+    "hybrid_top_k": 8,
+    "dense_weight": 0.6,
+    "sparse_weight": 0.4
+  },
+  "retrieval_eval": {
+    "fixture_path": "configs/evaluation/retrieval_eval_fixture.json",
+    "top_k": 8
+  },
+  "fusion": {
+    "target_serial_name": "FHC_ALL",
+    "arg_merge_strategy": "fill_missing",
+    "timeout_seconds": 120
+  },
+  "regression_expectations": {
+    "flow_steps": 8,
+    "planned_nodes": 11,
+    "trace_operations": 11,
+    "operation_xml_files": 11,
+    "serial_script_nodes": 11,
+    "serial_parallel_nodes": 3,
+    "fused_script_nodes_min": 200,
+    "fused_parallel_nodes_min": 7,
+    "graph_entities_min": 4000,
+    "graph_relations_min": 4000,
+    "graph_paths_min": 100,
+    "arg_selection_score_coverage_min": 1.0,
+    "operation_graph_path_coverage_min": 1.0,
+    "operation_retrieval_coverage_min": 1.0,
+    "operation_dense_retrieval_coverage_min": 1.0,
+    "operation_hybrid_retrieval_coverage_min": 1.0,
+    "average_dense_latency_seconds_max": 10.0,
+    "audit_review_items_max": 42,
+    "resolution_review_required_max": 6
+  },
+  "critical_args": [
+    {
+      "node_name": "ADCU1301_DTC_Clear",
+      "arg_name": "EcuBOMName",
+      "value": "ADCU1301"
+    },
+    {
+      "node_name": "ASDM_DTC_Clear",
+      "arg_name": "EcuBOMName",
+      "value": "ASDM1401"
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "arg_name": "EcuBOMName",
+      "value": "FAH"
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "arg_name": "ServiceID",
+      "value": "0x19"
+    },
+    {
+      "node_name": "CMD1A1C_DTC_Read",
+      "arg_name": "DID",
+      "value": "0x3101"
+    }
+  ],
+  "node_golden_checks": [
+    {
+      "node_name": "Car_Mode_Change_1",
+      "class_name": "GEEA30_VMM_Change",
+      "args": {
+        "EcuBOMName": "ZCUD1D01",
+        "DID": "0xD134",
+        "RequestParameter": "0x00"
+      }
+    },
+    {
+      "node_name": "CMD1A1C_DTC_Read",
+      "class_name": "DTC_Read_Type1",
+      "args": {
+        "EcuBOMName": "CMD1A1C",
+        "DID": "0x3101",
+        "Position": ""
+      }
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "class_name": "DTC_Clear_Type2",
+      "args": {
+        "EcuBOMName": "FAH",
+        "ServiceID": "0x19"
+      }
+    }
+  ]
+}

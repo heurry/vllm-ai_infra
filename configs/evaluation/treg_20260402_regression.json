@@ -1,0 +1,58 @@
+{
+  "workload": "treg_20260402",
+  "paths": {
+    "xml_plan": "data/processed/xml_plan/treg_20260402/xml_plan.json",
+    "flow_evidence_trace": "data/processed/xml_plan/treg_20260402/flow_evidence_trace.json",
+    "diagnostic_graph": "data/processed/xml_plan/treg_20260402/diagnostic_graph.json",
+    "serial_xml": "data/processed/xml_plan/treg_20260402/serial_node.xml",
+    "fused_workflow": "data/processed/workflow/treg_20260402/fused_workflow.xml",
+    "arg_audit_report": "data/processed/workflow/treg_20260402/arg_audit_report.json",
+    "audit_resolution_report": "data/processed/workflow/treg_20260402/audit_resolution_report.json",
+    "operation_xml_dir": "data/processed/xml_plan/treg_20260402/operations"
+  },
+  "expectations": {
+    "flow_steps": 8,
+    "planned_nodes": 11,
+    "trace_operations": 11,
+    "operation_xml_files": 11,
+    "serial_script_nodes": 11,
+    "serial_parallel_nodes": 3,
+    "fused_script_nodes_min": 200,
+    "fused_parallel_nodes_min": 7,
+    "graph_entities_min": 4000,
+    "graph_relations_min": 4000,
+    "graph_paths_min": 100,
+    "arg_selection_score_coverage_min": 1.0,
+    "operation_graph_path_coverage_min": 1.0,
+    "operation_retrieval_coverage_min": 1.0,
+    "audit_review_items_max": 42,
+    "resolution_review_required_max": 6
+  },
+  "critical_args": [
+    {
+      "node_name": "ADCU1301_DTC_Clear",
+      "arg_name": "EcuBOMName",
+      "value": "ADCU1301"
+    },
+    {
+      "node_name": "ASDM_DTC_Clear",
+      "arg_name": "EcuBOMName",
+      "value": "ASDM1401"
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "arg_name": "EcuBOMName",
+      "value": "FAH"
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "arg_name": "ServiceID",
+      "value": "0x19"
+    },
+    {
+      "node_name": "CMD1A1C_DTC_Read",
+      "arg_name": "DID",
+      "value": "0x3101"
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "top_k": 8,
+  "cases": [
+    {
+      "node_name": "Car_Mode_Change_1",
+      "query": "Car Mode Change DID D134 request parameter",
+      "expected_evidence_ids": ["EOL_TREG_General_EOL_Test-1715914617_tbl_188_1_1", "EOL_TREG_General_EOL_Test-1715914617_tbl_224_1_1"]
+    },
+    {
+      "node_name": "Car_Mode_Change_1",
+      "query": "ZCUD1D01 normal car mode request parameter 0x00",
+      "expected_evidence_ids": ["EOL_TREG_General_EOL_Test-1715914617_tbl_440_1_1", "EOL_TREG_General_EOL_Test-1715914617_tbl_476_1_1"]
+    },
+    {
+      "node_name": "Car_Mode_Change_1",
+      "query": "flow name Car_Mode_Change_1 ZCUD",
+      "expected_evidence_ids": ["EOL_TREG_General_EOL_Test-1715914617_tbl_188_1_1"]
+    },
+    {
+      "node_name": "Usage_Mode_Change_1",
+      "query": "Usage Mode Change active request parameter 0x0B",
+      "expected_evidence_ids": ["EOL_TREG_General_EOL_Test-1715914617_sec_0049", "GEEA3.0_EOL_TREG_ZCUD1D01_Parameter-1757416047_0168"]
+    },
+    {
+      "node_name": "Usage_Mode_Change_1",
+      "query": "ZCUD1D01 usage mode DID DD0A",
+      "expected_evidence_ids": ["EOL_TREG_General_EOL_Test-1715914617_sec_0049", "GEEA3.0_EOL_TREG_ZCUD1D01_Parameter-1757416047_ev_0168"]
+    },
+    {
+      "node_name": "Usage_Mode_Change_1",
+      "query": "flow name Usage_Mode_Change_1 active mode",
+      "expected_evidence_ids": ["EOL_TREG_General_EOL_Test-1715914617_sec_0049"]
+    },
+    {
+      "node_name": "ECM1610_Request_Open_HV_Battery",
+      "query": "ECM1610 request open HV battery RID 0x0208",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ECM1610_Parameter-1744774869_sec_0030", "GEEA3.0_EOL_TREG_ECM1610_Parameter-1744774869_sec_0067"]
+    },
+    {
+      "node_name": "ECM1610_Request_Open_HV_Battery",
+      "query": "ECM1610 relay ECU 0x1635 open high voltage battery",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ECM1610_Parameter-1744774869_sec_0067", "GEEA3.0_EOL_TREG_ECM1610_Parameter-1744774869_sec_0101"]
+    },
+    {
+      "node_name": "ECM1610_Request_Open_HV_Battery",
+      "query": "Request Open HV Battery timeout 10000",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ECM1610_Parameter-1744774869_sec_0101"]
+    },
+    {
+      "node_name": "ADCU1301_DTC_Clear",
+      "query": "ADCU1301 DTC Clear Type7 single DTC NRC allowed",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_0832", "GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_ev_0832"]
+    },
+    {
+      "node_name": "ADCU1301_DTC_Clear",
+      "query": "ADCU1301 clear DTC service Type7 section",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_sec_0246", "GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_0832"]
+    },
+    {
+      "node_name": "ADCU1301_DTC_Clear",
+      "query": "ECU ADCU1301 DTC clear template",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_0832"]
+    },
+    {
+      "node_name": "ASDM_DTC_Clear",
+      "query": "ASDM1401 DTC Clear Type7",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ASDM1401_Parameter-1751946944_0316", "GEEA3.0_EOL_TREG_ASDM1401_Parameter-1751946944_ev_0316"]
+    },
+    {
+      "node_name": "ASDM_DTC_Clear",
+      "query": "ASDM DTC clear ECU 1401",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ASDM1401_Parameter-1751946944_0316", "GEEA3.0_EOL_TREG_ASDM1401_Parameter-1751946944_0271"]
+    },
+    {
+      "node_name": "ASDM_DTC_Clear",
+      "query": "multi ECU confusion ASDM not ADCU clear DTC",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ASDM1401_Parameter-1751946944_ev_0271", "GEEA3.0_EOL_TREG_ASDM1401_Parameter-1751946944_0316"]
+    },
+    {
+      "node_name": "CMD1A1C_DTC_Read",
+      "query": "CMD1A1C DTC Read DID 0x3101 service 0x19",
+      "expected_evidence_ids": ["EOL_TREG_EOL_Process-Test_Sequence-1751025478_0418", "GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_0875"]
+    },
+    {
+      "node_name": "CMD1A1C_DTC_Read",
+      "query": "CMD1A1C DTC_Read_Type1 mask station FHC",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_ev_0875", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_0418"]
+    },
+    {
+      "node_name": "CMD1A1C_DTC_Read",
+      "query": "flow name CMD1A1C_DTC_Read DID default",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_ADCU1301_Parameter-1756876939_0875"]
+    },
+    {
+      "node_name": "TCAM1101_DTC_Read",
+      "query": "TCAM1101 DTC Read DID 0x3101",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_TCAM1101_Parameter-1748656980_0210", "GEEA3.0_EOL_TREG_TCAM1101_Parameter-1748656980_ev_0210"]
+    },
+    {
+      "node_name": "TCAM1101_DTC_Read",
+      "query": "TCAM1101 DTC_Read_Type1 service 0x19",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_TCAM1101_Parameter-1748656980_0210", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_0418"]
+    },
+    {
+      "node_name": "TCAM1101_DTC_Read",
+      "query": "multi ECU confusion TCAM not CMD DTC read",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_TCAM1101_Parameter-1748656980_ev_0210"]
+    },
+    {
+      "node_name": "HCML_DTC_Read",
+      "query": "HCML DTC Read HCMR paired ECU DID 0x3101",
+      "expected_evidence_ids": ["EOL_TREG_EOL_Process-Test_Sequence-1751025478_ev_0418", "GEEA3.0_EOL_TREG_HCML1BB3HCMR1BB4_Parameter-1713940160_0096"]
+    },
+    {
+      "node_name": "HCML_DTC_Read",
+      "query": "HCML1BB3 HCMR1BB4 DTC read",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_HCML1BB3HCMR1BB4_Parameter-1713940160_0096", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_0418"]
+    },
+    {
+      "node_name": "WPC1126_DTC_Read",
+      "query": "WPC1126 DTC Read Type2",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_WPC1126_Parameter-1745822532_ev_0031", "GEEA3.0_EOL_TREG_WPC1126_Parameter-1745822532_0031"]
+    },
+    {
+      "node_name": "WPC1126_DTC_Read",
+      "query": "WPC1126 ECU address 0x1126 DTC read",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_WPC1126_Parameter-1745822532_0031", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_0423"]
+    },
+    {
+      "node_name": "HCMR_DTC_Read",
+      "query": "HCMR DTC Read DID 0x3101",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_HCML1BB3HCMR1BB4_Parameter-1713940160_0096", "GEEA3.0_EOL_TREG_HCML1BB3HCMR1BB4_Parameter-1713940160_0116"]
+    },
+    {
+      "node_name": "HCMR_DTC_Read",
+      "query": "HCMR1BB4 paired HCML DTC read table rows",
+      "expected_evidence_ids": ["GEEA3.0_EOL_TREG_HCML1BB3HCMR1BB4_Parameter-1713940160_0136", "GEEA3.0_EOL_TREG_HCML1BB3HCMR1BB4_Parameter-1713940160_0166"]
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "query": "FAH clear DTC service 0x19 ECU",
+      "expected_evidence_ids": ["EOL_TREG_EOL_Process-Test_Sequence-1751025478_0387", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_ev_0387"]
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "query": "FAH CLEAR DTC ModuleName FAH DelayTime 4000",
+      "expected_evidence_ids": ["EOL_TREG_EOL_Process-Test_Sequence-1751025478_ev_0387", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_0414"]
+    },
+    {
+      "node_name": "FAH_CLEAR_DTC",
+      "query": "flow name FAH_CLEAR_DTC service id semantic default",
+      "expected_evidence_ids": ["EOL_TREG_EOL_Process-Test_Sequence-1751025478_0387", "EOL_TREG_EOL_Process-Test_Sequence-1751025478_ev_0387"]
+    }
+  ]
+}

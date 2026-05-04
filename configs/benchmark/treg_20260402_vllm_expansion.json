@@ -1,0 +1,355 @@
+{
+  "workload": "treg_20260402_vllm_expansion",
+  "iterations": 3,
+  "warmup_iterations": 1,
+  "metrics_urls": [
+    "http://127.0.0.1:8008/metrics"
+  ],
+  "scenarios": [
+    {
+      "name": "vllm_input_1k",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "8",
+        "--timeout-seconds",
+        "300",
+        "--prompt",
+        "请基于输入上下文输出 {\"status\":\"ok\",\"bucket\":\"1k\"}。"
+      ],
+      "timeout_seconds": 360,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_ttft_seconds_p95_max": 60.0,
+        "stdout_tokens_per_second_p50_min": 0.1
+      }
+    },
+    {
+      "name": "vllm_input_4k",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "3840",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "8",
+        "--timeout-seconds",
+        "300",
+        "--prompt",
+        "请基于输入上下文输出 {\"status\":\"ok\",\"bucket\":\"4k\"}。"
+      ],
+      "timeout_seconds": 360,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_ttft_seconds_p95_max": 90.0,
+        "stdout_tokens_per_second_p50_min": 0.1
+      }
+    },
+    {
+      "name": "vllm_input_8k",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "7680",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "96",
+        "--min-tokens",
+        "8",
+        "--timeout-seconds",
+        "420",
+        "--prompt",
+        "请基于输入上下文输出 {\"status\":\"ok\",\"bucket\":\"8k\"}。"
+      ],
+      "timeout_seconds": 480,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_ttft_seconds_p95_max": 150.0,
+        "stdout_tokens_per_second_p50_min": 0.1
+      }
+    },
+    {
+      "name": "vllm_input_16k",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "15360",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "64",
+        "--min-tokens",
+        "8",
+        "--timeout-seconds",
+        "600",
+        "--prompt",
+        "请基于输入上下文输出 {\"status\":\"ok\",\"bucket\":\"16k\"}。"
+      ],
+      "timeout_seconds": 660,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_ttft_seconds_p95_max": 240.0,
+        "stdout_tokens_per_second_p50_min": 0.1
+      }
+    },
+    {
+      "name": "vllm_output_128",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "warm",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "96",
+        "--timeout-seconds",
+        "300",
+        "--prompt",
+        "请输出一段用于推理压测的连续诊断文本，尽量使用满 128 个 token。"
+      ],
+      "timeout_seconds": 360,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_completion_tokens_p50_min": 96,
+        "stdout_tpot_seconds_p95_max": 5.0
+      }
+    },
+    {
+      "name": "vllm_output_256",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "warm",
+        "--max-tokens",
+        "256",
+        "--min-tokens",
+        "192",
+        "--timeout-seconds",
+        "420",
+        "--prompt",
+        "请输出一段用于推理压测的连续诊断文本，尽量使用满 256 个 token。"
+      ],
+      "timeout_seconds": 480,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_completion_tokens_p50_min": 192,
+        "stdout_tpot_seconds_p95_max": 5.0
+      }
+    },
+    {
+      "name": "vllm_output_512",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_chat.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "warm",
+        "--max-tokens",
+        "512",
+        "--min-tokens",
+        "384",
+        "--timeout-seconds",
+        "600",
+        "--prompt",
+        "请输出一段用于推理压测的连续诊断文本，尽量使用满 512 个 token。"
+      ],
+      "timeout_seconds": 660,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_completion_tokens_p50_min": 384,
+        "stdout_tpot_seconds_p95_max": 5.0
+      }
+    },
+    {
+      "name": "vllm_concurrency_1",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_concurrent.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--concurrency",
+        "1",
+        "--requests",
+        "1",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "32",
+        "--timeout-seconds",
+        "300"
+      ],
+      "timeout_seconds": 360,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_success_rate_p50_min": 1.0
+      }
+    },
+    {
+      "name": "vllm_concurrency_4",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_concurrent.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--concurrency",
+        "4",
+        "--requests",
+        "4",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "32",
+        "--timeout-seconds",
+        "300"
+      ],
+      "timeout_seconds": 420,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_success_rate_p50_min": 1.0
+      }
+    },
+    {
+      "name": "vllm_concurrency_8",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_concurrent.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--concurrency",
+        "8",
+        "--requests",
+        "8",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "32",
+        "--timeout-seconds",
+        "360"
+      ],
+      "timeout_seconds": 480,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_success_rate_p50_min": 1.0
+      }
+    },
+    {
+      "name": "vllm_concurrency_16",
+      "enabled": true,
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_concurrent.py",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--model",
+        "qwen-audit-resolver",
+        "--concurrency",
+        "16",
+        "--requests",
+        "16",
+        "--target-input-tokens",
+        "1024",
+        "--cache-mode",
+        "cold",
+        "--max-tokens",
+        "128",
+        "--min-tokens",
+        "32",
+        "--timeout-seconds",
+        "480"
+      ],
+      "timeout_seconds": 600,
+      "thresholds": {
+        "iterations_min": 3,
+        "success_rate_min": 1.0,
+        "stdout_success_rate_p50_min": 1.0
+      }
+    }
+  ]
+}

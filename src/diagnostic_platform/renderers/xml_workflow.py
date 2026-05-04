@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from xml.etree import ElementTree as ET
 
-from diagnostic_platform.schemas import RenderedXml, XmlRenderRequest, XmlScriptNodePlan, XmlSerialNodePlan
+from diagnostic_platform.schemas import (
+    RenderedXml,
+    XmlGenerationPlan,
+    XmlRenderRequest,
+    XmlScriptNodePlan,
+    XmlSerialNodePlan,
+)
 
 
 def render_xml_request(request: XmlRenderRequest) -> RenderedXml:
@@ -43,6 +49,50 @@ def render_serial_node(plan: XmlSerialNodePlan) -> str:
     serials = ET.SubElement(root, "Serials")
     for script in plan.scripts:
         serials.append(_script_node_element(script))
+    return _xml_text(root)
+
+
+def render_flow_serial_node(plan: XmlGenerationPlan) -> str:
+    """Render a flow-aware SerialNode.
+
+    Planned nodes with the same ``order`` come from the same Excel column and
+    are rendered under one ParallelNode. Columns stay ordered inside the
+    SerialNode.
+    """
+
+    root = ET.Element(
+        "SerialNode",
+        {
+            "Name": plan.serial.name,
+            "DeadMS": str(plan.serial.dead_ms),
+        },
+    )
+    if plan.serial.expression:
+        root.set("Expression", plan.serial.expression)
+
+    serials = ET.SubElement(root, "Serials")
+    nodes_by_order: dict[int, list] = {}
+    for node in plan.nodes:
+        nodes_by_order.setdefault(node.order, []).append(node)
+
+    for order in sorted(nodes_by_order):
+        planned_nodes = sorted(nodes_by_order[order], key=lambda item: (item.row, item.node_name))
+        if len(planned_nodes) == 1:
+            serials.append(_script_node_element(planned_nodes[0].script))
+            continue
+
+        parallel = ET.SubElement(
+            serials,
+            "ParallelNode",
+            {
+                "Name": f"{planned_nodes[0].step_key}_parallel",
+                "DeadMS": "0",
+            },
+        )
+        tasks = ET.SubElement(parallel, "Tasks")
+        for planned_node in planned_nodes:
+            tasks.append(_script_node_element(planned_node.script))
+
     return _xml_text(root)
 
 
@@ -87,4 +137,3 @@ def _indent_xml(element: ET.Element, level: int = 0) -> None:
             element[-1].tail = indent
     if level and (not element.tail or not element.tail.strip()):
         element.tail = indent
-

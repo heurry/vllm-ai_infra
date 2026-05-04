@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODEL_DIR="${MODEL_DIR:-/home/xdu/huggingface/cyankiwi-Qwen3-Coder-30B-A3B-Instruct-AWQ-4bit}"
+
+MODEL_PATH="${MODEL_PATH:-${MODEL_DIR}}" \
+TOKENIZER_PATH="${TOKENIZER_PATH:-${MODEL_DIR}}" \
+HF_CONFIG_PATH="${HF_CONFIG_PATH:-${MODEL_DIR}}" \
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-8192}" \
+GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.80}" \
+ENFORCE_EAGER="${ENFORCE_EAGER:-1}" \
+TENSOR_PARALLEL_SIZE="${TENSOR_PARALLEL_SIZE:-2}" \
+"$(dirname "${BASH_SOURCE[0]}")/start_vllm_qwen.sh"

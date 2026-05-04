@@ -20,7 +20,8 @@ def parse_flow_xlsx(source_path: Path, include_non_flow: bool = False) -> FlowSt
     """Parse an xlsx flow table into ordered steps.
 
     Cells are expected to use the common format: ``NodeName(TemplateName)``.
-    Cells in the same Excel column are treated as parallel nodes in the same step.
+    Excel columns are treated as serial stages from left to right. Non-empty flow
+    cells in the same column are treated as parallel nodes and ordered by row.
     """
 
     flow_path = source_path.expanduser().resolve()
@@ -48,13 +49,15 @@ def parse_flow_xlsx(source_path: Path, include_non_flow: bool = False) -> FlowSt
 
     steps: list[FlowStep] = []
     for order, col_index in enumerate(sorted(columns), start=1):
+        nodes = sorted(columns[col_index], key=lambda item: item.row)
         steps.append(
             FlowStep(
                 step_key=f"step_{order:03d}",
                 display_name=f"第{order}步",
                 order=order,
+                row=nodes[0].row if nodes else 0,
                 column=col_index,
-                parallel_nodes=columns[col_index],
+                parallel_nodes=nodes,
             )
         )
 

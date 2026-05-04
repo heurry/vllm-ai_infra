@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<TaskNode xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema" ID="0">
+	<MainNodes>
+		<MainNode ID="0">
+			<AnnNode ID="0">
+				<CVNodes>
+					<CreateVarNode ID="0" Name="SourceAddress"
+						Type="Bytes"
+						VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="1" Name="ECUAddress"
+						Type="Bytes"
+						VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="2" Name="Status"
+						Type="EnumRVAgentStatus"
+						VarDefaultValue="EnumRVAgentStatus.WaitSend" />
+					<CreateVarNode ID="3" Name="ResponseByteData" Type="Bytes"
+						VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="4" Name="EcuNameWithAddress" Type="string"
+						VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="5" Name="EcuBOMName" Type="string"
+						VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="6" Name="Station" Type="string"
+						VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="7" Name="DTCInfo" Type="string"
+						VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="8" Name="DTCList" Type="string[]"
+						VarDefaultValue="null" />
+					<CreateVarNode ID="9" Name="Position" Type="string"
+						VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="10" Name="Message" Type="string"
+						VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="11" Name="RoutineResult"
+						Type="RuntimeLibrary.UDSModel.RoutineMachine.NormalRoutineMachine"
+						VarDefaultValue="null" />
+					<CreateVarNode ID="12" Name="Index" Type="int"
+						VarDefaultValue="0" />
+					<CreateVarNode ID="13" Name="IsMaskDTC" Type="bool"
+						VarDefaultValue="false" />
+				</CVNodes>
+			</AnnNode>
+
+			<FlowsNodes>
+				<!-- Initial -->
+				<NormalBoxNode ID="1" GotoCatchError="-1" Goto="2">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="SourceAddress"
+							RightExpression="Bytes.Parse(_argLibrary.Get(&quot;SourceAddress&quot;))" />
+						<AssignNode ID="1" LeftVar="ECUAddress"
+							RightExpression="Bytes.Parse(_argLibrary.Get(&quot;ECUAddress&quot;))" />
+						<AssignNode ID="2" LeftVar="EcuNameWithAddress"
+							RightExpression="_argLibrary.Get(&quot;EcuNameWithAddress&quot;)" />
+						<AssignNode ID="3" LeftVar="EcuBOMName"
+							RightExpression="_argLibrary.Get(&quot;EcuBOMName&quot;)" />
+						<AssignNode ID="4" LeftVar="Station"
+							RightExpression="_argLibrary.Get(&quot;Station&quot;)" />
+						<AssignNode ID="5" LeftVar="Position"
+							RightExpression="_argLibrary.Get(&quot;Position&quot;)" />
+						<AssignNode ID="6" LeftVar="Message"
+							RightExpression="_argLibrary.Get(&quot;Message&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="2" GotoCatchError="-1" Goto="10">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>!string.IsNullOrEmpty(Position) &amp;&amp; !string.IsNullOrEmpty(Message)</Expression>
+							<Goto>3</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="3" GotoCatchError="-1" Goto="10">
+					<OptNodes>
+						<CallFunctionNode ID="1" FunctionName="htmlPageLibrary.SetValue">
+							<InputVars>
+								<Param Name="key">Position</Param>
+								<Param Name="value">Message</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+
+				<NormalBoxNode ID="10" GotoCatchError="-1" Goto="11">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.DTCRoutine">
+							<InputVars>
+								<Param Name="ecuAddress">ECUAddress</Param>
+								<Param Name="ecuBomName">EcuBOMName</Param>
+								<Param Name="snapshot">false</Param>
+								<Param Name="dbyte">0x29</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="11" GotoCatchError="-1" Goto="25">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="RoutineResult"
+							FunctionName="_udsLibrary.ReadRoutineResult">
+						</CallFunctionNode>
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>RoutineResult.IsSuccess == true</Expression>
+							<Goto>12</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="12" GotoCatchError="-1" Goto="13">
+					<OptNodes>
+						<CreateVarNode ID="0" Name="globalKey" Type="string"
+							VarDefaultValue="EcuBOMName + &quot;_DTC&quot;" />
+						<AssignNode ID="0" LeftVar="DTCInfo"
+							RightExpression="globalVarLibrary.GetStringValue(globalKey)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="13" GotoCatchError="-1" Goto="14">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>DTCInfo == string.Empty</Expression>
+							<Goto>0</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="14" GotoCatchError="-1" Goto="15">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="DTCList"
+							RightExpression="DTCInfo.Split(',')" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="15" GotoCatchError="-1" Goto="0">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Index &lt; DTCList.Length</Expression>
+							<Goto>16</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="16" GotoCatchError="-1" Goto="17">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="globalVarLibrary.IsMaskDTC" RevResultVar="IsMaskDTC">
+							<InputVars>
+								<Param Name="station">Station</Param>
+								<Param Name="ecuNameWithAddress">EcuNameWithAddress</Param>
+								<Param Name="dtcHex">DTCList[Index].Substring(0,6)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="17" GotoCatchError="-1" Goto="18">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetDTC">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>stringLibrary.ToDTCPCode(DTCList[Index].Substring(0,6))</Param>
+								<Param>IsMaskDTC</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="18" GotoCatchError="-1" Goto="15">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="Index"
+							RightExpression="Index + 1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="25" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CreateVarNode ID="0" Name="message" Type="string"
+							VarDefaultValue="RoutineResult.Message" />
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"V32049"</Param>
+								<Param>message</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+
+				<!-- NACK -->
+				<NormalBoxNode ID="99991" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"VC0003"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- Response Timeout -->
+				<NormalBoxNode ID="99992" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"VC0004"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="99993" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"V30022"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+
+				<NormalBoxNode ID="2147483647" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="2" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"VC0005"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+			</FlowsNodes>
+		</MainNode>
+	</MainNodes>
+</TaskNode>

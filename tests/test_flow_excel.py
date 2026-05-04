@@ -12,7 +12,7 @@ from diagnostic_platform.ingestion.flow_excel import parse_flow_xlsx
 
 
 class FlowExcelTest(unittest.TestCase):
-    def test_parse_parallel_steps_from_xlsx(self) -> None:
+    def test_parse_columns_as_serial_steps_and_rows_as_parallel_nodes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "flow.xlsx"
             _write_minimal_xlsx(path)
@@ -21,9 +21,14 @@ class FlowExcelTest(unittest.TestCase):
 
         self.assertEqual(len(plan.steps), 2)
         self.assertEqual(plan.steps[0].step_key, "step_001")
+        self.assertEqual(plan.steps[0].row, 1)
+        self.assertEqual(plan.steps[0].column, 1)
+        self.assertEqual(len(plan.steps[0].parallel_nodes), 1)
         self.assertEqual(plan.steps[0].parallel_nodes[0].name, "Car_Mode_Change_1")
         self.assertEqual(plan.steps[0].parallel_nodes[0].template_name, "GEEA30_VMM_Change")
+        self.assertEqual(plan.steps[1].column, 2)
         self.assertEqual(len(plan.steps[1].parallel_nodes), 2)
+        self.assertEqual(plan.steps[1].parallel_nodes[0].name, "CMD1A1C_DTC_Read")
         self.assertEqual(plan.steps[1].parallel_nodes[1].name, "TCAM1101_DTC_Read")
 
 
@@ -62,4 +67,3 @@ def _write_minimal_xlsx(path: Path) -> None:
 
 if __name__ == "__main__":
     unittest.main()
-

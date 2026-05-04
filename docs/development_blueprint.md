@@ -197,10 +197,20 @@ vllm-ai_infra/
 | `POST` | `/api/v1/xml/flow/parse` | 解析 `flow.xlsx` 为 `FlowStepPlan` |
 | `POST` | `/api/v1/xml/evidence/from-mineru` | 将 MinerU 输出转成可追溯 `EvidenceUnit` |
 | `POST` | `/api/v1/xml/evidence/build` | 将 `FlowStepPlan` 与 `EvidenceUnit` 关联成 `StepEvidenceBundle` |
+| `POST` | `/api/v1/xml/plan/generate` | 将 `StepEvidenceBundle` 转成可校验 XML 中间 DSL |
+| `POST` | `/api/v1/xml/plan/validate` | 校验 XML 中间 DSL 的节点、必填参数、占位符和证据引用 |
+| `POST` | `/api/v1/xml/templates/build` | 扫描历史 XML，建立 `ScriptNode` 模板注册表 |
+| `POST` | `/api/v1/xml/templates/contracts/build` | 从模板注册表推断 `ClassName -> allowed/required Args` 参数契约 |
+| `POST` | `/api/v1/xml/workflow/render` | 将 XML 中间 DSL 融合进历史主流程 workflow XML |
+| `POST` | `/api/v1/xml/workflow/audit` | 对比 `xml_plan`、原始 workflow、融合 workflow，生成参数差异和人工复核报告 |
+| `POST` | `/api/v1/xml/workflow/resolve-audit` | 用模板参数契约解析审计项，自动忽略非脚本参数并保留真实冲突复核清单 |
+| `POST` | `/api/v1/xml/workflow/resolve-audit-llm` | 调用 pip 安装的 vLLM OpenAI-compatible 服务，对剩余复核项做保守仲裁 |
 | `POST` | `/api/v1/xml/graph/build` | 从步骤计划和证据包构建轻量诊断图谱 |
 | `POST` | `/api/v1/xml/graph/search` | 查询诊断图谱中的实体关系路径 |
 | `POST` | `/api/v1/xml/task/render` | 将 XML 中间 DSL 渲染为 `ScriptNode` / `SerialNode` XML |
 | `POST` | `/api/v1/xml/validate` | 校验 XML 结构、占位符、必填参数和脚本节点 |
+| `POST` | `/api/v1/index/build` | 将已有 MinerU 输出批量构建为本地 JSONL 知识索引和轻量图谱 |
+| `POST` | `/api/v1/retrieval/query` | 基于本地 JSONL 知识索引执行无外部依赖的 sparse 检索 |
 
 ### 5.2 Phase 1 API
 
@@ -357,6 +367,8 @@ PDF / flow.xlsx / 历史 XML 模板
 - 每个步骤的结构化证据包；
 - 每个步骤的 XML 参数集合；
 - 每个步骤的 TaskNode / ScriptNode XML；
+- 每个操作单独生成的 ScriptNode XML；
+- 每个 `flow.xlsx` 操作的检索过程追溯报告；
 - 完整主流程 workflow XML；
 - XML 校验报告和生成追溯报告。
 
@@ -365,7 +377,7 @@ PDF / flow.xlsx / 历史 XML 模板
 | 输入 | 作用 | 处理方式 |
 | --- | --- | --- |
 | PDF / 扫描件 | 协议说明、ECU 参数表、流程图来源 | 通过 MinerU 输出 Markdown、`content_list.json`、图片区域和 bbox |
-| `flow.xlsx` | 描述步骤顺序、并行节点和模板名称 | 解析为 `FlowStepPlan`，作为主流程顺序锚点 |
+| `flow.xlsx` | 描述步骤顺序、并行节点和模板名称 | 横向行内按列串行执行，同一列跨行是并行操作，解析为 `FlowStepPlan` |
 | 历史 XML 模板 | 提供真实标签、属性、ClassName、Args 风格 | 建立 `XmlTemplateRegistry`，不直接全文复制 |
 | 人工规则表 | 补充 ECU 地址、DID、错误码、安全等级等稳定规则 | 入库为 `rule_chunk` / metadata |
 | 历史生成结果 | 作为对齐样例和回归评测数据 | 入库为 `code_template` / `xml_template` |
@@ -378,7 +390,8 @@ PDF 到 XML 不能只依赖文本 chunk，需要显式建模以下对象：
 FlowStepPlan
   - step_key
   - order
-  - parallel_groups
+  - column
+  - parallel_nodes: 同一 Excel 列中的操作，按 row 排序
   - node_name
   - template_name
 
@@ -420,6 +433,8 @@ WorkflowXmlPlan
   - parallel_nodes
   - refresh_strategy
 ```
+
+`flow.xlsx` 的结构语义固定为：每一行从左到右是串行执行链；同一列中跨多行的非空流程单元格属于同一串行阶段的并行操作。每个单元格代表一个独立操作，必须生成一个独立的 `ScriptNode` XML；当同一列包含多个操作时，汇总 XML 中应渲染为一个 `ParallelNode`，其 `Tasks` 下挂这些 `ScriptNode`。
 
 ### 7.4 MinerU 解析与知识入库
 
@@ -499,6 +514,10 @@ FlowStep
 - 图谱路径，例如 `step -> uses_did -> DID -> requires_service -> Service`；
 - 候选 XML 模板及选择理由。
 
+生成阶段需要额外落盘 `flow_evidence_trace.json`，按 `step_key / row / column / node_name` 记录每个操作的 top-k 检索候选、score、matched_terms、evidence_id、页码、bbox、内容摘要、GraphRAG 路径、最终采用的参数和单操作 XML 路径。同步落盘 flow-aware `diagnostic_graph.json`，用于回放 `FlowNode -> Evidence / DID / Service / Session / SecurityLevel / next_step` 等路径。`xml_plan.json` 只保留最终 plan 和 evidence id，不能替代完整检索过程记录。
+
+参数选择不能只累加 evidence score。`EcuBOMName / DID / ServiceID / Session / SecurityLevel` 应按 `evidence_score + graph_score + flow_node_prior - conflict_penalty` 选择候选值，并在 `XmlArg` 中保留 `selection_score`、`score_breakdown`、`graph_paths` 和 `selection_notes`。这样后续审计可以解释“为什么选择这个参数值”，也能发现 flow 节点 ECU 与证据 ECU 不一致的情况。
+
 ### 7.7 XML 中间 DSL
 
 模型或规则不直接输出最终 XML，而是输出 XML 中间 DSL。这样可以在渲染前做 schema 校验、图一致性校验和规则校验。
@@ -554,6 +573,7 @@ XML 渲染前必须先校验 DSL。校验分三层：
 - 按 `XmlArgSet` 注入 Args；
 - 保留项目真实 XML 的标签、属性顺序、命名风格；
 - 生成单步骤 XML；
+- 按 `flow.xlsx` 列串行、同列跨行并行生成结构化 `SerialNode / ParallelNode` XML；
 - 生成 ECU 参数片段 XML；
 - 生成完整 workflow XML。
 
@@ -582,6 +602,14 @@ XML 渲染前必须先校验 DSL。校验分三层：
 
 主流程融合的目标是保留工程真实结构，同时更新当前 PDF 和参数中推导出的节点参数。
 
+当前实现采用保守融合策略：
+
+- 默认按 `ScriptNode Name` 匹配已有节点；
+- 默认保留历史 XML 中非空 Args，不用检索结果覆盖人工确认值；
+- 默认只填充已有但为空的 Args，不向脚本类追加未知参数；
+- 只有显式启用覆盖或追加时，才刷新已有非空值或追加新 Arg；
+- 保留 `SerialNode`、`ParallelNode`、`Expression`、`ScriptType` 等主流程结构。
+
 ### 7.11 最终 XML 校验
 
 生成后必须输出校验报告。至少检查：
@@ -596,7 +624,48 @@ XML 渲染前必须先校验 DSL。校验分三层：
 - 图谱中的流程跳转是否都能映射到 XML 节点；
 - 所有生成节点是否能追溯到 PDF、表格、流程图或模板证据。
 
-### 7.12 端到端 XML API
+### 7.12 参数差异审计
+
+workflow 融合完成后，需要生成参数审计报告，避免检索噪声静默污染历史 XML。审计报告以 `ScriptNode Name + ArgName` 为主键，对比三份数据：
+
+- 原始主流程 XML；
+- `XmlGenerationPlan` 中的计划参数和 evidence ids；
+- 融合后的 workflow XML。
+
+审计状态至少包括：
+
+- `confirmed_by_plan`：历史值、计划值、融合值一致；
+- `base_only_unchanged`：该参数只存在于历史 XML，融合保持不变；
+- `filled_from_plan`：历史 XML 中已有空参数，融合用计划值补齐；
+- `appended_from_plan`：显式允许追加时，计划参数被追加到 XML；
+- `plan_conflict_kept_base`：计划值与历史值冲突，保守融合保留历史值；
+- `plan_arg_missing_in_fused`：计划参数未进入融合结果，通常表示脚本类没有该 Arg；
+- `workflow_changed_without_plan`：融合结果出现非计划内变化。
+
+默认验收原则是：报告可以有 warning，但不能有 error；`plan_conflict_kept_base` 和 `plan_arg_missing_in_fused` 必须进入人工复核清单。
+
+### 7.13 模板参数契约与审计解析
+
+为了避免把诊断语义参数误写入 XML 脚本参数，需要从历史 XML 中推断 `ClassName -> ArgName` 参数契约。
+
+契约规则：
+
+- 同一个 `ClassName` 下出现过的 `ArgName` 视为该脚本类允许参数；
+- 在该 `ClassName` 的所有样本中都出现的参数视为 required；
+- 只在部分样本中出现的参数视为 optional；
+- 没出现在契约中的参数默认不写入 workflow。
+
+审计解析规则：
+
+- `confirmed_by_plan`、`base_only_unchanged`、`filled_from_plan` 等状态直接通过；
+- `plan_arg_missing_in_fused` 且参数不在脚本类契约中，自动标记为 `ignore_plan_arg`；
+- `plan_arg_missing_in_fused` 且参数在契约中，保留为复核或后续补写候选；
+- `plan_conflict_kept_base` 默认执行 `keep_base`，但保留复核项；
+- 节点缺失、非计划变更、融合值与计划/历史均不一致时进入复核。
+
+这一步的目标是把大批“LLM/检索抽出的语义字段”与“XML 脚本真实入参”分离，只把真正可能影响工程 XML 的冲突交给人工或 LLM resolver。
+
+### 7.14 端到端 XML API
 
 XML 生成链路可以逐步拆成以下 API：
 
@@ -607,11 +676,44 @@ XML 生成链路可以逐步拆成以下 API：
 | `POST` | `/api/v1/xml/graph/build` | 从知识单元构建诊断流程图谱 |
 | `POST` | `/api/v1/xml/plan/generate` | 生成 XML 中间 DSL |
 | `POST` | `/api/v1/xml/plan/validate` | 校验 XML DSL 和图一致性 |
+| `POST` | `/api/v1/xml/templates/contracts/build` | 推断模板参数契约 |
 | `POST` | `/api/v1/xml/task/render` | 渲染单步骤 TaskNode / ScriptNode XML |
 | `POST` | `/api/v1/xml/workflow/render` | 融合并渲染完整 workflow XML |
+| `POST` | `/api/v1/xml/workflow/audit` | 输出参数差异和人工复核报告 |
+| `POST` | `/api/v1/xml/workflow/resolve-audit` | 解析审计报告并生成复核决策 |
+| `POST` | `/api/v1/xml/workflow/resolve-audit-llm` | 使用 vLLM 对仍需复核的冲突项做 JSON 决策 |
 | `POST` | `/api/v1/xml/generate` | 端到端生成最终 XML |
 
-### 7.13 实现优先级
+### 7.15 pip 方式接入 vLLM
+
+当前项目先采用 pip 安装 vLLM，而不是源码编译。原因是现阶段 LLM 只介入“结构化/仲裁/修复建议”这类低频节点，不在主链路中承担大规模并行生成，因此优先保证接入稳定和工程闭环。
+
+已固化的运行方式：
+
+```bash
+scripts/install_vllm_pip.sh
+scripts/start_vllm_qwen.sh
+```
+
+默认配置：
+
+- 依赖版本固定为 `vllm==0.19.1`；
+- 模型原始目录为 `/home/xdu/huggingface/Qwen3-VL-30B-A3B-Instruct-Q8_0-GGUF`；
+- 启动脚本会在 `/tmp/vllm-qwen3-vl-30b-a3b-instruct-q8_0-gguf` 组装 GGUF 权重、`mmproj`、tokenizer 和 HF config 软链接；
+- 服务名为 `qwen-audit-resolver`；
+- OpenAI-compatible 地址为 `http://127.0.0.1:8008/v1`；
+- 默认使用 `CUDA_VISIBLE_DEVICES=0,1` 和 `--tensor-parallel-size 2`；
+- 默认限制 `--max-model-len 8192`，避免 Qwen3-VL 超长上下文配置导致 KV cache 预分配过大。
+
+LLM 输出必须保持为可解析 JSON，不允许直接输出 workflow XML。当前 prompt 只允许以下动作：
+
+- `keep_base`：保留历史 workflow 值；
+- `accept_plan`：接受 XML plan 推导值；
+- `needs_review`：证据不足，继续人工复核。
+
+低置信度或非法 JSON 一律降级为 `needs_review`。这样可以让 vLLM 辅助减少人工复核量，但不会绕过模板参数契约、XML 校验和人工确认边界。
+
+### 7.16 实现优先级
 
 第一阶段先实现确定性骨架：
 
@@ -619,32 +721,160 @@ XML 生成链路可以逐步拆成以下 API：
 2. `flow.xlsx -> FlowStepPlan`；
 3. `KnowledgeUnit -> GraphEntity / GraphRelation`；
 4. `FlowStepPlan + Hybrid Retrieval + GraphRAG -> StepEvidenceBundle`；
-5. `StepEvidenceBundle -> XmlGenerationPlan`；
-6. `XmlGenerationPlan -> XML Validator`；
-7. `XmlGenerationPlan -> XML Renderer`。
+5. 已实现 `StepEvidenceBundle -> XmlGenerationPlan` 确定性骨架；
+6. 已实现 `XmlGenerationPlan -> XML DSL Validator` 基础校验；
+7. 已实现 `XmlGenerationPlan -> workflow XML conservative fusion`，默认保留历史主流程结构和脚本参数契约；
+8. 已实现 `workflow arg audit report`，输出参数确认、冲突、缺失和人工复核清单；
+9. 已实现 `template contract + audit resolver`，自动忽略非脚本参数并压缩真实复核项。
 
-第二阶段再接入 Qwen/vLLM：
+第二阶段接入 Qwen/vLLM：
 
-1. 对规则无法抽取的参数做 LLM 辅助结构化；
+1. 已实现 `generation/vllm_client.py`、`prompt_builder.py` 和 `resolution/llm_resolver.py`，通过 OpenAI-compatible chat 接口处理剩余审计冲突；
 2. 对模板候选做 LLM rerank；
 3. 对校验失败结果生成修复建议；
 4. 保持最终 XML 仍由 renderer 生成。
 
 第三阶段建立回归评测：
 
-1. 固定一批 PDF、flow.xlsx、历史 XML 作为测试集；
-2. 比较生成 XML 与人工 XML 的节点覆盖率、参数准确率、图路径一致性；
-3. 统计 GraphRAG 对跳转识别、分支识别、模板选择的提升。
+1. 已建立首个固定 workload：`treg_20260402`；
+2. 已实现 `evaluation/regression.py` 和 `scripts/run_regression_eval.py`；
+3. 已固化 `configs/evaluation/treg_20260402_regression.json`，检查 `xml_plan`、trace、GraphRAG、单操作 XML、汇总 XML、融合 workflow、审计摘要和关键参数；
+4. 后续扩展为多 workload 对比，继续补节点覆盖率、参数准确率、图路径一致性和 GraphRAG ablation 指标。
+
+当前运行方式：
+
+```bash
+python scripts/run_regression_eval.py --print-checks
+```
+
+默认输出：
+
+```text
+data/reports/regression/treg_20260402_regression_report.json
+```
+
+首版评测指标包括：
+
+- artifact 完整性；
+- `xml_plan.validation.valid`；
+- flow step、planned node、operation XML 数量；
+- 单操作 XML、汇总 `serial_node.xml`、融合 `fused_workflow.xml` XML 合法性；
+- GraphRAG entity / relation / path 数量；
+- retrieval 和 graph path 覆盖率；
+- `XmlArg.selection_score` 覆盖率；
+- 审计 `review_items` 和 resolution `review_required` 上限；
+- 关键参数断言，例如 `FAH_CLEAR_DTC.EcuBOMName == FAH`。
+
+### 7.17 一键端到端 Pipeline
+
+整体工程流程以 workload manifest + pipeline runner 作为主入口，避免开发过程中手工串多个脚本导致产物不一致。
+
+当前默认 workload：
+
+```bash
+python scripts/run_workload_pipeline.py --workload configs/workloads/treg_20260402.json --print-steps
+```
+
+workload manifest：
+
+```text
+configs/workloads/treg_20260402.json
+```
+
+默认报告：
+
+```text
+data/reports/pipeline/treg_20260402_pipeline_report.json
+```
+
+当前 pipeline 步骤：
+
+1. `generate_xml_plan`：解析 `flow.xlsx`、构建 evidence bundle、GraphRAG path、XML plan、单操作 XML、trace；
+2. `fuse_workflow`：把 XML plan 保守融合进历史 workflow；
+3. `audit_workflow_args`：对比 base / plan / fused 参数；
+4. `resolve_audit_report`：用模板参数契约自动解析审计项；
+5. `resolve_audit_with_llm`：默认禁用，需要 vLLM 服务可用时通过 `--enable-step resolve_audit_with_llm` 显式打开；
+6. `regression_eval`：执行固定 workload 回归评测。
+
+设计约束：
+
+- pipeline 配置只描述步骤顺序、命令、是否必需、是否启用和超时时间；
+- 必需步骤失败时立即停止；
+- 非必需步骤失败不会阻断后续回归评测；
+- pipeline 报告必须保存每个步骤的 `return_code`、耗时、stdout/stderr 和可解析 JSON 摘要；
+- 后续新增 workload 时，只新增 `configs/pipeline/*.json` 和 `configs/evaluation/*.json`，不复制脚本逻辑。
+- 后续新增 workload 时，优先新增 `configs/workloads/*.json`；低层 `configs/pipeline/*.json` 只用于特殊调度实验。
+
+### 7.18 系统 Benchmark
+
+Benchmark 以场景配置驱动，默认覆盖端到端 pipeline 和回归评测两个确定性场景，先形成稳定基线，再把 vLLM 推理作为可选场景追加。默认不启用 vLLM 场景，避免本地服务未启动、模型未加载或 GPU 被占用时影响确定性回归。
+
+默认运行：
+
+```bash
+python scripts/run_system_benchmark.py
+```
+
+默认配置：
+
+```text
+configs/benchmark/treg_20260402_system.json
+```
+
+测试矩阵：
+
+```text
+docs/benchmark_matrix.md
+```
+
+默认报告：
+
+```text
+data/reports/benchmark/treg_20260402_system_benchmark.json
+```
+
+当前场景：
+
+1. `pipeline_no_llm`：执行 `scripts/run_workload_pipeline.py`，验证整条非 LLM 主流程耗时和成功率；
+2. `regression_only`：执行 `scripts/run_workload_regression.py`，验证固定 workload 回归评测耗时和成功率；
+3. `vllm_chat_stream`：调用 OpenAI-compatible vLLM `/chat/completions`，采集 TTFT、TPOT、tokens/s 和输出有效性，默认禁用。
+
+启用 vLLM 推理 benchmark：
+
+```bash
+python scripts/run_system_benchmark.py --enable-scenario vllm_chat_stream --iterations 1
+```
+
+执行完整扩展矩阵：
+
+```bash
+python scripts/run_complete_benchmark.py
+```
+
+vLLM 场景前置条件：
+
+- `scripts/start_vllm_qwen.sh` 已启动并监听 `http://127.0.0.1:8008/v1`；
+- 模型名与服务启动参数一致，当前 benchmark 默认使用 `qwen-audit-resolver`；
+- GPU 显存没有被 MinerU 或其他服务占满；
+- prompt 输出必须保持可解析、短文本或 JSON，benchmark 不直接接受 workflow XML 作为模型输出。
+
+首版 benchmark 指标：
+
+- 每个场景的成功率、失败数、超时数；
+- 命令级 `duration_min/mean/p50/p95/max`；
+- vLLM 输出 JSON 中的 `ttft_seconds`、`tpot_seconds`、`tokens_per_second`、`completion_tokens` 聚合指标；
+- 阈值检查结果，例如 `success_rate_min`、`duration_p95_seconds_max`、`stdout_ttft_seconds_p95_max`。
 
 ## 8. 首批开发顺序
 
 1. 拆分 `api/routes_*.py`，避免 `app.py` 继续膨胀。
 2. 实现 `ingestion/mineru_client.py`，用 CLI 或 Python API 调用 `/home/xdu/MinerU`。
-3. 实现 `indexing/builder.py`，先落本地 JSONL + BM25，dense store 可后补 Faiss。
-4. 实现 `retrieval/hybrid.py`，先做到 dense/sparse merge + score normalize。
-5. 实现 `generation/vllm_client.py` 和 `prompt_builder.py`，对接 OpenAI-compatible vLLM。
+3. 已实现 `indexing/local_builder.py`，先落本地 JSONL + 轻量诊断图谱，dense store 可后补 Faiss。
+4. 已实现 `retrieval/local_sparse.py`，先提供无外部依赖的 BM25 风格 sparse 检索；后续再扩展 hybrid merge + score normalize。
+5. 已实现 `generation/vllm_client.py` 和 `prompt_builder.py`，对接 OpenAI-compatible vLLM；下一步扩展到模板候选 rerank 和校验失败修复建议。
 6. 扩展 `validation/rules.py`，加入 DID、NRC、timeout、retry、session/security 规则。
-7. 实现 `evaluation/benchmark.py`，固定 workload 和指标记录格式。
+7. 已实现 `evaluation/regression.py` 和 `evaluation/benchmark.py`，固定 `treg_20260402` workload、回归指标、系统 benchmark 和 vLLM 推理场景。
+8. 已实现 `orchestration/pipeline.py`、`orchestration/workload.py`、`scripts/run_pipeline.py` 和 `scripts/run_workload_pipeline.py`，形成 manifest 驱动的端到端一键流程；后续扩展多 workload manifest。
 
 ## 9. 最小可验收标准
 
@@ -656,4 +886,5 @@ XML 生成链路可以逐步拆成以下 API：
 | 生成 | 模型能稳定输出 `DiagnosticPlan` JSON |
 | 校验 | 错误的 security access 顺序会被拦截 |
 | 渲染 | 通过校验的 DSL 能渲染为 C 函数模板 |
-| Benchmark | 能输出 P50/P95、TTFT、TPOT、schema pass rate |
+| Regression | 固定 workload 能输出 XML 合法性、trace 覆盖率、GraphRAG 覆盖率、审计复核项和关键参数断言 |
+| Benchmark | 能输出 pipeline / regression 的 P50/P95，以及 vLLM 场景的 TTFT、TPOT、tokens/s 和成功率 |

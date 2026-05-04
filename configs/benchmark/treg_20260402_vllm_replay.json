@@ -1,0 +1,31 @@
+{
+  "workload": "treg_20260402_vllm_replay",
+  "iterations": 1,
+  "warmup_iterations": 0,
+  "metrics_urls": [
+    "http://127.0.0.1:8008/metrics"
+  ],
+  "scenarios": [
+    {
+      "name": "vllm_real_workload_replay",
+      "command": [
+        "{python}",
+        "scripts/benchmark_vllm_replay.py",
+        "--dataset-path",
+        "data/processed/replay/treg_20260402_workload_replay.json",
+        "--base-url",
+        "http://127.0.0.1:8008/v1",
+        "--concurrency",
+        "4",
+        "--timeout-seconds",
+        "300"
+      ],
+      "timeout_seconds": 600,
+      "thresholds": {
+        "success_rate_min": 1.0,
+        "stdout_success_rate_p50_min": 1.0,
+        "stdout_requests_per_second_p50_min": 0.01
+      }
+    }
+  ]
+}

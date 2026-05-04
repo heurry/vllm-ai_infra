@@ -87,26 +87,35 @@ class GraphPhaseCTest(unittest.TestCase):
 
         entity_ids = {entity.entity_id for entity in graph.entities}
         relations = {(rel.source_id, rel.relation_type, rel.target_id) for rel in graph.relations}
+        self.assertIn("FlowTask:Car_Mode_Change_1", entity_ids)
         self.assertIn("FlowNode:Car_Mode_Change_1", entity_ids)
         self.assertIn("XmlTemplate:GEEA30_VMM_Change", entity_ids)
-        self.assertIn("DID:D134", entity_ids)
+        self.assertIn("TemplateClass:GEEA30_VMM_Change", entity_ids)
+        self.assertIn("ParameterField:DID=D134", entity_ids)
         self.assertIn(
-            ("FlowNode:Car_Mode_Change_1", "uses_template", "XmlTemplate:GEEA30_VMM_Change"),
+            ("FlowTask:Car_Mode_Change_1", "uses_template", "TemplateClass:GEEA30_VMM_Change"),
             relations,
         )
-        self.assertIn(("FlowNode:Car_Mode_Change_1", "uses_did", "DID:D134"), relations)
-        self.assertIn(("FlowNode:Car_Mode_Change_1", "next_step", "FlowNode:DTC_Read_1"), relations)
+        self.assertIn(
+            ("FlowTask:Car_Mode_Change_1", "supported_by", "Section:doc_001_ev_0001"),
+            relations,
+        )
+        self.assertIn(
+            ("Section:doc_001_ev_0001", "section_has_field", "ParameterField:DID=D134"),
+            relations,
+        )
+        self.assertIn(("FlowTask:Car_Mode_Change_1", "next_step", "FlowTask:DTC_Read_1"), relations)
 
         paths = search_graph_paths(
             GraphPathSearchRequest(
                 graph=graph,
-                source_id="FlowNode:Car_Mode_Change_1",
-                target_id="DID:D134",
+                source_id="FlowTask:Car_Mode_Change_1",
+                target_id="ParameterField:DID=D134",
                 max_depth=2,
             )
         )
         self.assertTrue(paths.paths)
-        self.assertEqual(paths.paths[0].entity_ids[-1], "DID:D134")
+        self.assertEqual(paths.paths[0].entity_ids[-1], "ParameterField:DID=D134")
 
 
 if __name__ == "__main__":

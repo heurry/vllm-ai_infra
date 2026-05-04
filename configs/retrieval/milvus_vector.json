@@ -1,0 +1,12 @@
+{
+  "milvus_uri": "http://127.0.0.1:19530",
+  "enable_dense": true,
+  "collection_name": "diagnostic_knowledge_treg_20260402",
+  "embedding_model": "/home/xdu/LLM/models/Qwen3-Embedding-0.6B",
+  "metric_type": "COSINE",
+  "batch_size": 16,
+  "dense_top_k": 8,
+  "hybrid_top_k": 8,
+  "dense_weight": 0.6,
+  "sparse_weight": 0.4
+}

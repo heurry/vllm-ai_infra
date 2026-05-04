@@ -1,0 +1,12 @@
+task: workflow_audit_resolver
+output_format: strict_json
+allowed_actions:
+  - keep_base
+  - accept_plan
+  - needs_review
+policy:
+  - Prefer keep_base when historical workflow values look stable.
+  - Choose accept_plan only when the plan value is clearly more specific and compatible with the ClassName contract.
+  - Choose needs_review when evidence is insufficient or values appear to refer to different concepts.
+  - Never output XML.
+

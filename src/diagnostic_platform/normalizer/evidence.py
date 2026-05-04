@@ -38,6 +38,7 @@ def evidence_from_mineru(request: NormalizeMinerURequest) -> list[EvidenceUnit]:
                     "module": request.metadata.module or "",
                     "ecu": request.metadata.ecu or "",
                     "source": request.metadata.source or "",
+                    "block_role": _block_role(block, content),
                     "img_path": block.img_path or "",
                     "text_level": block.text_level or 0,
                     "service_ids": _extract_service_ids(content),
@@ -72,3 +73,30 @@ def _evidence_type(block: MinerUContentBlock, content: str) -> EvidenceType:
             return "flowchart"
         return "image"
     return "text"
+
+
+def _block_role(block: MinerUContentBlock, content: str) -> str:
+    """Classify blocks for downstream Graph RAG without changing old fields."""
+
+    if _looks_like_flowchart_body(content):
+        return "flowchart_body"
+    if block.type == "image" and _evidence_type(block, content) == "flowchart":
+        return "flowchart_image"
+    if block.type == "table":
+        return "table"
+    return "section_text"
+
+
+def _looks_like_flowchart_body(content: str) -> bool:
+    lowered = content.lower()
+    signals = [
+        r"\breq\s*:",
+        r"\bres\s*:",
+        "positive response",
+        "positive respone",
+        "negative response",
+        "time out",
+        "failed",
+        "routine aborted",
+    ]
+    return sum(1 for pattern in signals if re.search(pattern, lowered)) >= 3

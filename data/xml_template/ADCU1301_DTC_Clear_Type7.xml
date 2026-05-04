@@ -1,0 +1,734 @@
+<?xml version="1.0"?>
+<TaskNode xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema" ID="0">
+	<MainNodes>
+		<MainNode ID="0">
+			<AnnNode ID="0">
+				<CVNodes>
+					<CreateVarNode ID="0" Name="SourceAddress" Type="Bytes" VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="1" Name="ECUAddress" Type="Bytes" VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="2" Name="Status" Type="EnumRVAgentStatus" VarDefaultValue="EnumRVAgentStatus.WaitSend" />
+					<CreateVarNode ID="3" Name="ResponseByteData" Type="Bytes" VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="4" Name="RetryCount" Type="int" VarDefaultValue="0" />
+					<CreateVarNode ID="5" Name="EcuBOMName" Type="string" VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="6" Name="ClearDTC" Type="Bytes" VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="7" Name="AllowedNRC" Type="Bytes" VarDefaultValue="Bytes.Empty" />
+					<CreateVarNode ID="8" Name="Position" Type="string" VarDefaultValue="string.Empty" />
+					<CreateVarNode ID="9" Name="Message" Type="string" VarDefaultValue="string.Empty" />
+				</CVNodes>
+			</AnnNode>
+			<FlowsNodes>
+				<!-- Initial -->
+				<NormalBoxNode ID="1" GotoCatchError="-1" Goto="2">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="SourceAddress" RightExpression="Bytes.Parse(_argLibrary.Get(&quot;SourceAddress&quot;))" />
+						<AssignNode ID="1" LeftVar="ECUAddress" RightExpression="Bytes.Parse(_argLibrary.Get(&quot;ECUAddress&quot;))" />
+						<AssignNode ID="2" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="3" LeftVar="EcuBOMName" RightExpression="_argLibrary.Get(&quot;EcuBOMName&quot;)" />
+						<AssignNode ID="4" LeftVar="Position" RightExpression="_argLibrary.Get(&quot;Position&quot;)" />
+						<AssignNode ID="5" LeftVar="Message" RightExpression="_argLibrary.Get(&quot;Message&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="2" GotoCatchError="-1" Goto="20">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>!string.IsNullOrEmpty(Position) &amp;&amp; !string.IsNullOrEmpty(Message)</Expression>
+							<Goto>3</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="3" GotoCatchError="-1" Goto="20">
+					<OptNodes>
+						<CallFunctionNode ID="1" FunctionName="htmlPageLibrary.SetValue">
+							<InputVars>
+								<Param Name="key">Position</Param>
+								<Param Name="value">Message</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<!--  DTC Clear 1 -->
+				<NormalBoxNode ID="20" GotoCatchError="-1" Goto="21">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xEF7292&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="21" GotoCatchError="-1" Goto="22">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="22" GotoCatchError="-1" Goto="23">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="23" GotoCatchError="-1" Goto="24">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="24" GotoCatchError="-1" Goto="25">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>30</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>30</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="25" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>26</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="26" GotoCatchError="-1" Goto="21">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 2 -->
+				<NormalBoxNode ID="30" GotoCatchError="-1" Goto="31">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xEF7392&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="31" GotoCatchError="-1" Goto="32">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="32" GotoCatchError="-1" Goto="33">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="33" GotoCatchError="-1" Goto="34">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="34" GotoCatchError="-1" Goto="35">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>40</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>40</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="35" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>36</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="36" GotoCatchError="-1" Goto="31">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 3 -->
+				<NormalBoxNode ID="40" GotoCatchError="-1" Goto="41">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xEF7492&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="41" GotoCatchError="-1" Goto="42">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="42" GotoCatchError="-1" Goto="43">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="43" GotoCatchError="-1" Goto="44">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="44" GotoCatchError="-1" Goto="45">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>50</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>50</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="45" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>46</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="46" GotoCatchError="-1" Goto="41">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 4 -->
+				<NormalBoxNode ID="50" GotoCatchError="-1" Goto="51">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xEF7592&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="51" GotoCatchError="-1" Goto="52">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="52" GotoCatchError="-1" Goto="53">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="53" GotoCatchError="-1" Goto="54">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="54" GotoCatchError="-1" Goto="55">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>60</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>60</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="55" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>56</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="56" GotoCatchError="-1" Goto="51">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 5 -->
+				<NormalBoxNode ID="60" GotoCatchError="-1" Goto="61">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xD4D681&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="61" GotoCatchError="-1" Goto="62">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="62" GotoCatchError="-1" Goto="63">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="63" GotoCatchError="-1" Goto="64">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="64" GotoCatchError="-1" Goto="65">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>70</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>70</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="65" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>66</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="66" GotoCatchError="-1" Goto="61">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 6 -->
+				<NormalBoxNode ID="70" GotoCatchError="-1" Goto="71">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xD4D781&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="71" GotoCatchError="-1" Goto="72">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="72" GotoCatchError="-1" Goto="73">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="73" GotoCatchError="-1" Goto="74">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="74" GotoCatchError="-1" Goto="75">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>80</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>80</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="75" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>76</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="76" GotoCatchError="-1" Goto="71">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 7 -->
+				<NormalBoxNode ID="80" GotoCatchError="-1" Goto="81">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xD40281&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="81" GotoCatchError="-1" Goto="82">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="82" GotoCatchError="-1" Goto="83">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="83" GotoCatchError="-1" Goto="84">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="84" GotoCatchError="-1" Goto="85">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>90</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>90</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="85" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>86</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="86" GotoCatchError="-1" Goto="81">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 8 -->
+				<NormalBoxNode ID="90" GotoCatchError="-1" Goto="91">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xED1081&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="91" GotoCatchError="-1" Goto="92">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="92" GotoCatchError="-1" Goto="93">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="93" GotoCatchError="-1" Goto="94">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="94" GotoCatchError="-1" Goto="95">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>100</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>100</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="95" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>96</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="96" GotoCatchError="-1" Goto="91">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- 9 -->
+				<NormalBoxNode ID="100" GotoCatchError="-1" Goto="101">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="3" />
+						<AssignNode ID="1" LeftVar="ClearDTC" RightExpression="Bytes.Parse(&quot;0xD60E00&quot;)" />
+						<AssignNode ID="2" LeftVar="AllowedNRC" RightExpression="Bytes.Parse(&quot;0x31&quot;)" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="101" GotoCatchError="-1" Goto="102">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="_udsLibrary.SendUDSRawData">
+							<InputVars>
+								<Param>
+									Bytes.Concat(SourceAddress,ECUAddress,Bytes.Parse(&quot;0x14&quot;),ClearDTC)</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="102" GotoCatchError="-1" Goto="103">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="Status" FunctionName="_udsLibrary.ReadStatus" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="103" GotoCatchError="-1" Goto="104">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.NAck</Expression>
+							<Goto>99991</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status == EnumRVAgentStatus.ResponseTimeout</Expression>
+							<Goto>99992</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>Status != EnumRVAgentStatus.GotResponse</Expression>
+							<Goto>500</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="104" GotoCatchError="-1" Goto="105">
+					<OptNodes>
+						<CallFunctionNode ID="0" RevResultVar="ResponseByteData" FunctionName="_udsLibrary.ReadUDSData" />
+					</OptNodes>
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								ResponseByteData.Count &gt; 0 &amp;&amp;
+								ResponseByteData.Slice(0,1).SequenceEqual(Bytes.Parse("0x54"))</Expression>
+							<Goto>0</Goto>
+						</GotoPair>
+						<GotoPair>
+							<Expression>ResponseByteData.Count &gt; 2 &amp;&amp;
+								ResponseByteData[0] == 0x7F &amp;&amp; AllowedNRC.Contains(ResponseByteData[2])</Expression>
+							<Goto>0</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="105" GotoCatchError="-1" Goto="500">
+					<GotoPairs>
+						<GotoPair>
+							<Expression>
+								RetryCount &gt; 0</Expression>
+							<Goto>106</Goto>
+						</GotoPair>
+					</GotoPairs>
+				</NormalBoxNode>
+				<NormalBoxNode ID="106" GotoCatchError="-1" Goto="101">
+					<OptNodes>
+						<AssignNode ID="0" LeftVar="RetryCount" RightExpression="RetryCount-1" />
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="500" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"V32015"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- NACK -->
+				<NormalBoxNode ID="99991" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"VC0003"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<!-- Response Timeout -->
+				<NormalBoxNode ID="99992" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="0" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"VC0004"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+				<NormalBoxNode ID="2147483647" GotoCatchError="-1" Goto="-1">
+					<OptNodes>
+						<CallFunctionNode ID="2" FunctionName="errorLibrary.SetFault">
+							<InputVars>
+								<Param>EcuBOMName</Param>
+								<Param>"VC0005"</Param>
+							</InputVars>
+						</CallFunctionNode>
+					</OptNodes>
+				</NormalBoxNode>
+			</FlowsNodes>
+		</MainNode>
+	</MainNodes>
+</TaskNode>

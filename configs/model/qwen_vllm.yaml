@@ -1,0 +1,16 @@
+base_url: http://127.0.0.1:8008/v1
+model: qwen-audit-resolver
+api_key: EMPTY
+timeout_seconds: 120
+temperature: 0.0
+max_tokens: 1024
+serve:
+  model_dir: /home/xdu/huggingface/Qwen3-VL-30B-A3B-Instruct-Q8_0-GGUF
+  runtime_model_dir: /tmp/vllm-qwen3-vl-30b-a3b-instruct-q8_0-gguf
+  model_path: /tmp/vllm-qwen3-vl-30b-a3b-instruct-q8_0-gguf/qwen3-vl-30b-a3b-instruct-q8_0.gguf
+  tokenizer_path: /home/xdu/.cache/huggingface/hub/models--Qwen--Qwen3-VL-30B-A3B-Instruct/snapshots/9c4b90e1e4ba969fd3b5378b57d966d725f1b86c
+  hf_config_path: /tmp/vllm-qwen3-vl-30b-a3b-instruct-q8_0-gguf
+  cuda_visible_devices: "0,1"
+  tensor_parallel_size: 2
+  max_model_len: 8192
+  gpu_memory_utilization: 0.90

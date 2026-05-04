@@ -1,0 +1,47 @@
+{
+  "workload": "treg_20260402",
+  "steps": [
+    {
+      "name": "generate_xml_plan",
+      "command": ["{python}", "scripts/generate_xml_plan.py"],
+      "required": true,
+      "enabled": true,
+      "timeout_seconds": 120
+    },
+    {
+      "name": "fuse_workflow",
+      "command": ["{python}", "scripts/fuse_workflow.py"],
+      "required": true,
+      "enabled": true,
+      "timeout_seconds": 120
+    },
+    {
+      "name": "audit_workflow_args",
+      "command": ["{python}", "scripts/audit_workflow_args.py"],
+      "required": true,
+      "enabled": true,
+      "timeout_seconds": 120
+    },
+    {
+      "name": "resolve_audit_report",
+      "command": ["{python}", "scripts/resolve_audit_report.py"],
+      "required": true,
+      "enabled": true,
+      "timeout_seconds": 120
+    },
+    {
+      "name": "resolve_audit_with_llm",
+      "command": ["{python}", "scripts/resolve_audit_with_llm.py", "--max-items", "20"],
+      "required": false,
+      "enabled": false,
+      "timeout_seconds": 300
+    },
+    {
+      "name": "regression_eval",
+      "command": ["{python}", "scripts/run_regression_eval.py"],
+      "required": true,
+      "enabled": true,
+      "timeout_seconds": 120
+    }
+  ]
+}
