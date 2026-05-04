@@ -7,9 +7,16 @@ build/
 *.egg-info/
 *.pyc
 .DS_Store
-data/raw/
-data/processed/
-data/index/
-data/reports/
+data/
 logs/
 pdf-loop/
+
+/代码生成项目开发资料.md
+/简历介绍.md
+/流程图.md
+/面试问答 copy.md
+/面试问答.md
+/问题记录.d
+/项目框架.md
+/项目优化建议.md
+/自己项目总结.md
